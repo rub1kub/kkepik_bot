@@ -19,6 +19,7 @@ from commands.find import cmd_find
 from commands.start import cmd_start, process_role_callback, process_name
 from commands.reset import cmd_reset
 from commands.broadcast import cmd_broadcast
+from commands.game import cmd_game
 from handlers.inline_mode import inline_schedule
 from handlers.upload_schedule import handle_document
 
@@ -45,6 +46,7 @@ async def main():
     dp.message.register(cmd_find, Command(commands=["find"]))
     dp.message.register(cmd_reset, Command(commands=["reset"]))
     dp.message.register(cmd_broadcast, Command(commands=["broadcast"]))
+    dp.message.register(cmd_game, Command(commands=["game"]))
 
     # Регистрируем callback для выбора роли
     @dp.callback_query(lambda c: c.data in ["role_student", "role_teacher"])

@@ -2,68 +2,312 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KKEPIK Аэрохокей</title>
-    <link rel="stylesheet" href="../css/main.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
+    <title>Аэрохокей | KKEPIK Games</title>
     <link rel="stylesheet" href="../css/bounce-ball.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="game-container">
         <div class="header">
-            <a href="../index.html" class="back-button">←</a>
-            <div class="logo">🏒 Аэрохокей</div>
-            <div class="stats">
+            <h1 class="title">Аэрохокей</h1>
+            <div class="score-container">
                 <div class="player player1">
                     <div class="player-name">Игрок 1</div>
-                    <div class="player-score" id="score1">0</div>
+                    <div class="player-score" id="player1-score">0</div>
                 </div>
                 <div class="player player2">
                     <div class="player-name">Игрок 2</div>
-                    <div class="player-score" id="score2">0</div>
+                    <div class="player-score" id="player2-score">0</div>
                 </div>
             </div>
         </div>
-
         <div class="game-area">
             <canvas id="gameCanvas"></canvas>
-            <div class="controls">
-                <button id="start-button">Начать игру</button>
-                <button id="pause-button" disabled>Пауза</button>
-            </div>
         </div>
-
-        <div class="mobile-controls">
-            <div class="paddle-controls">
-                <div class="paddle1-controls">
-                    <button id="paddle1-left">←</button>
-                    <button id="paddle1-right">→</button>
-                </div>
-                <div class="paddle2-controls">
-                    <button id="paddle2-left">←</button>
-                    <button id="paddle2-right">→</button>
-                </div>
-            </div>
+        <div class="controls">
+            <button id="startButton">Начать игру</button>
+            <button id="resetButton">Сбросить</button>
         </div>
     </div>
 
-    <div class="modal" id="game-over-modal">
-        <div class="modal-content">
-            <h2>Игра окончена!</h2>
-            <div class="final-scores">
-                <div class="player player1">
-                    <div class="player-name">Игрок 1</div>
-                    <div class="player-score" id="final-score1">0</div>
-                </div>
-                <div class="player player2">
-                    <div class="player-name">Игрок 2</div>
-                    <div class="player-score" id="final-score2">0</div>
-                </div>
-            </div>
-            <button id="play-again">Играть снова</button>
-        </div>
-    </div>
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.show();
+        tg.BackButton.onClick(function() {
+            window.location.href = '../index.html';
+        });
 
-    <script src="../js/bounce-ball.js"></script>
+        // Получаем canvas и контекст
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Игровые переменные
+        let isGameRunning = false;
+        let lastTime = 0;
+        let ballSpeed = 5;
+        let paddleSpeed = 8;
+        let scores = { player1: 0, player2: 0 };
+        let activeTouches = new Map();
+
+        // Игровые объекты
+        const ball = {
+            x: 0,
+            y: 0,
+            radius: 10,
+            dx: 0,
+            dy: 0
+        };
+
+        const paddle1 = {
+            width: 100,
+            height: 20,
+            x: 0,
+            y: 0,
+            targetX: 0
+        };
+
+        const paddle2 = {
+            width: 100,
+            height: 20,
+            x: 0,
+            y: 0,
+            targetX: 0
+        };
+
+        // Функция изменения размера canvas
+        function resizeCanvas() {
+            const container = document.querySelector('.game-area');
+            canvas.width = container.clientWidth;
+            canvas.height = window.innerHeight * 0.8; // 80% высоты экрана
+            
+            // Обновляем позиции после изменения размера
+            if (isGameRunning) {
+                paddle1.y = 20;
+                paddle2.y = canvas.height - paddle2.height - 20;
+                if (ball.y > canvas.height) {
+                    ball.y = canvas.height - ball.radius;
+                }
+            }
+        }
+
+        // Инициализация игры
+        function initGame() {
+            // Начальная позиция мяча
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (Math.random() - 0.5) * ballSpeed;
+            ball.dy = (Math.random() - 0.5) * ballSpeed;
+
+            // Начальная позиция платформ
+            paddle1.x = canvas.width / 2 - paddle1.width / 2;
+            paddle1.y = 20;
+            paddle1.targetX = paddle1.x;
+
+            paddle2.x = canvas.width / 2 - paddle2.width / 2;
+            paddle2.y = canvas.height - paddle2.height - 20;
+            paddle2.targetX = paddle2.x;
+
+            scores = { player1: 0, player2: 0 };
+            document.getElementById('player1-score').textContent = scores.player1;
+            document.getElementById('player2-score').textContent = scores.player2;
+            ballSpeed = 5;
+        }
+
+        // Обработка касаний
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                const rect = canvas.getBoundingClientRect();
+                const touchY = touch.clientY - rect.top;
+                
+                // Определяем, какая платформа ближе к касанию
+                if (touchY < canvas.height / 2) {
+                    paddle1.targetX = touch.clientX - rect.left - paddle1.width / 2;
+                } else {
+                    paddle2.targetX = touch.clientX - rect.left - paddle2.width / 2;
+                }
+                
+                activeTouches.set(touch.identifier, touchY < canvas.height / 2 ? 'paddle1' : 'paddle2');
+            }
+        });
+
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            
+            for (let i = 0; i < touches.length; i++) {
+                const touch = touches[i];
+                const paddle = activeTouches.get(touch.identifier);
+                if (!paddle) continue;
+                
+                const rect = canvas.getBoundingClientRect();
+                const targetX = touch.clientX - rect.left - (paddle === 'paddle1' ? paddle1.width : paddle2.width) / 2;
+                
+                if (paddle === 'paddle1') {
+                    paddle1.targetX = targetX;
+                } else {
+                    paddle2.targetX = targetX;
+                }
+            }
+        });
+
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const touches = e.changedTouches;
+            
+            for (let i = 0; i < touches.length; i++) {
+                activeTouches.delete(touches[i].identifier);
+            }
+        });
+
+        // Отрисовка
+        function draw() {
+            // Очистка canvas
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--tg-theme-bg-color');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Отрисовка центральной линии
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--tg-theme-hint-color');
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Отрисовка мяча
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--tg-theme-text-color');
+            ctx.fill();
+            ctx.closePath();
+
+            // Отрисовка платформ
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height);
+
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height);
+        }
+
+        // Обновление состояния игры
+        function update(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = (currentTime - lastTime) / 1000;
+            lastTime = currentTime;
+
+            // Плавное движение платформ
+            const dx1 = paddle1.targetX - paddle1.x;
+            paddle1.x += dx1 * paddleSpeed * deltaTime;
+
+            const dx2 = paddle2.targetX - paddle2.x;
+            paddle2.x += dx2 * paddleSpeed * deltaTime;
+
+            // Ограничение движения платформ
+            if (paddle1.x < 0) paddle1.x = 0;
+            if (paddle1.x + paddle1.width > canvas.width) {
+                paddle1.x = canvas.width - paddle1.width;
+            }
+
+            if (paddle2.x < 0) paddle2.x = 0;
+            if (paddle2.x + paddle2.width > canvas.width) {
+                paddle2.x = canvas.width - paddle2.width;
+            }
+
+            // Движение мяча
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Отскок от стен
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+
+            // Проверка столкновения с платформами
+            if (ball.y - ball.radius < paddle1.y + paddle1.height &&
+                ball.x > paddle1.x &&
+                ball.x < paddle1.x + paddle1.width) {
+                ball.dy = Math.abs(ball.dy);
+                ballSpeed += 0.1;
+                ball.dx *= 1.1;
+                ball.dy *= 1.1;
+                // Добавляем мягкую вибрацию при отскоке
+                tg.HapticFeedback.impactOccurred('soft');
+            }
+
+            if (ball.y + ball.radius > paddle2.y &&
+                ball.x > paddle2.x &&
+                ball.x < paddle2.x + paddle2.width) {
+                ball.dy = -Math.abs(ball.dy);
+                ballSpeed += 0.1;
+                ball.dx *= 1.1;
+                ball.dy *= 1.1;
+                // Добавляем мягкую вибрацию при отскоке
+                tg.HapticFeedback.impactOccurred('soft');
+            }
+
+            // Проверка забитого гола
+            if (ball.y - ball.radius < 0) {
+                scores.player2++;
+                document.getElementById('player2-score').textContent = scores.player2;
+                // Добавляем жесткую вибрацию при забивании гола
+                tg.HapticFeedback.impactOccurred('heavy');
+                resetBall();
+            }
+
+            if (ball.y + ball.radius > canvas.height) {
+                scores.player1++;
+                document.getElementById('player1-score').textContent = scores.player1;
+                // Добавляем жесткую вибрацию при забивании гола
+                tg.HapticFeedback.impactOccurred('heavy');
+                resetBall();
+            }
+        }
+
+        // Сброс мяча
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (Math.random() - 0.5) * ballSpeed;
+            ball.dy = (Math.random() - 0.5) * ballSpeed;
+        }
+
+        // Игровой цикл
+        function gameLoop(currentTime) {
+            if (isGameRunning) {
+                update(currentTime);
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Обработчики кнопок
+        document.getElementById('startButton').addEventListener('click', function() {
+            if (!isGameRunning) {
+                isGameRunning = true;
+                gameLoop(0);
+            }
+        });
+
+        document.getElementById('resetButton').addEventListener('click', function() {
+            isGameRunning = false;
+            initGame();
+        });
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Инициализация
+        resizeCanvas();
+        initGame();
+    </script>
 </body>
 </html> 

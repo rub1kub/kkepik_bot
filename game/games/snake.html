@@ -2,66 +2,271 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KKEPIK Змейка</title>
-    <link rel="stylesheet" href="../css/main.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
+    <title>Змейка | KKEPIK Games</title>
     <link rel="stylesheet" href="../css/snake.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="game-container">
         <div class="header">
-            <a href="../index.html" class="back-button">←</a>
-            <div class="logo">🐍 Змейка</div>
-            <div class="stats">
-                <div class="score-container">
-                    <div class="score-label">Счёт</div>
-                    <div class="score-value" id="score">0</div>
-                </div>
-                <div class="score-container">
-                    <div class="score-label">Рекорд</div>
-                    <div class="score-value" id="high-score">0</div>
-                </div>
-            </div>
+            <h1 class="title">Змейка</h1>
+            <div class="score">Счёт: <span id="score">0</span></div>
         </div>
-
         <div class="game-area">
             <canvas id="gameCanvas"></canvas>
-            <div class="controls">
-                <button id="start-button">Начать игру</button>
-                <button id="pause-button" disabled>Пауза</button>
-            </div>
         </div>
-
-        <div class="mobile-controls">
-            <div class="direction-buttons">
-                <button id="up-button">↑</button>
-                <div class="horizontal-buttons">
-                    <button id="left-button">←</button>
-                    <button id="right-button">→</button>
-                </div>
-                <button id="down-button">↓</button>
-            </div>
+        <div class="game-controls">
+            <button id="startButton">Начать игру</button>
+            <button id="pauseButton" disabled>Пауза</button>
         </div>
     </div>
 
-    <div class="modal" id="game-over-modal">
-        <div class="modal-content">
-            <h2>Игра окончена!</h2>
-            <div class="final-scores">
-                <div class="score-container">
-                    <div class="score-label">Счёт</div>
-                    <div class="score-value" id="final-score">0</div>
-                </div>
-                <div class="score-container">
-                    <div class="score-label">Рекорд</div>
-                    <div class="score-value" id="final-high-score">0</div>
-                </div>
-            </div>
-            <button id="play-again">Играть снова</button>
-        </div>
-    </div>
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.show();
+        tg.BackButton.onClick(function() {
+            window.location.href = '../index.html';
+        });
 
-    <script src="../js/snake.js"></script>
+        // Получаем canvas и контекст
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Игровые переменные
+        let isGameRunning = false;
+        let isPaused = false;
+        let score = 0;
+        let lastTime = 0;
+        let gameSpeed = 150; // миллисекунды между обновлениями
+        let gridSize = 20;
+
+        // Игровые объекты
+        const snake = {
+            body: [],
+            direction: 'right',
+            nextDirection: 'right'
+        };
+
+        const food = {
+            x: 0,
+            y: 0
+        };
+
+        // Функция изменения размера canvas
+        function resizeCanvas() {
+            const container = document.querySelector('.game-area');
+            const size = Math.min(container.clientWidth, container.clientHeight);
+            canvas.width = size;
+            canvas.height = size;
+            gridSize = Math.floor(size / 20);
+        }
+
+        // Инициализация игры
+        function initGame() {
+            // Начальная позиция змейки
+            snake.body = [
+                { x: 3, y: 1 },
+                { x: 2, y: 1 },
+                { x: 1, y: 1 }
+            ];
+            snake.direction = 'right';
+            snake.nextDirection = 'right';
+
+            // Начальная позиция еды
+            placeFood();
+
+            score = 0;
+            document.getElementById('score').textContent = score;
+            gameSpeed = 150;
+        }
+
+        // Размещение еды
+        function placeFood() {
+            const maxX = Math.floor(canvas.width / gridSize);
+            const maxY = Math.floor(canvas.height / gridSize);
+            
+            do {
+                food.x = Math.floor(Math.random() * maxX);
+                food.y = Math.floor(Math.random() * maxY);
+            } while (snake.body.some(segment => segment.x === food.x && segment.y === food.y));
+        }
+
+        // Обработка касаний
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && snake.direction !== 'left') {
+                    snake.nextDirection = 'right';
+                } else if (dx < 0 && snake.direction !== 'right') {
+                    snake.nextDirection = 'left';
+                }
+            } else {
+                if (dy > 0 && snake.direction !== 'up') {
+                    snake.nextDirection = 'down';
+                } else if (dy < 0 && snake.direction !== 'down') {
+                    snake.nextDirection = 'up';
+                }
+            }
+        });
+
+        // Обработка клавиш
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (snake.direction !== 'down') snake.nextDirection = 'up';
+                    break;
+                case 'ArrowDown':
+                    if (snake.direction !== 'up') snake.nextDirection = 'down';
+                    break;
+                case 'ArrowLeft':
+                    if (snake.direction !== 'right') snake.nextDirection = 'left';
+                    break;
+                case 'ArrowRight':
+                    if (snake.direction !== 'left') snake.nextDirection = 'right';
+                    break;
+            }
+        });
+
+        // Отрисовка
+        function draw() {
+            // Очистка canvas
+            ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--tg-theme-bg-color');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Отрисовка змейки
+            snake.body.forEach((segment, index) => {
+                ctx.fillStyle = index === 0 ? '#2ecc71' : '#27ae60';
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 1, gridSize - 1);
+            });
+
+            // Отрисовка еды
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 1, gridSize - 1);
+        }
+
+        // Обновление состояния игры
+        function update(currentTime) {
+            if (!lastTime) lastTime = currentTime;
+            const deltaTime = currentTime - lastTime;
+
+            if (deltaTime >= gameSpeed) {
+                lastTime = currentTime;
+
+                // Обновление направления
+                snake.direction = snake.nextDirection;
+
+                // Получение новой позиции головы
+                const head = { ...snake.body[0] };
+                switch(snake.direction) {
+                    case 'up': head.y--; break;
+                    case 'down': head.y++; break;
+                    case 'left': head.x--; break;
+                    case 'right': head.x++; break;
+                }
+
+                // Проверка столкновения со стенами
+                if (head.x < 0 || head.x >= canvas.width / gridSize ||
+                    head.y < 0 || head.y >= canvas.height / gridSize) {
+                    gameOver();
+                    return;
+                }
+
+                // Проверка столкновения с собой
+                if (snake.body.some(segment => segment.x === head.x && segment.y === head.y)) {
+                    gameOver();
+                    return;
+                }
+
+                // Добавление новой головы
+                snake.body.unshift(head);
+
+                // Проверка столкновения с едой
+                if (head.x === food.x && head.y === food.y) {
+                    score++;
+                    document.getElementById('score').textContent = score;
+                    placeFood();
+                    // Увеличение скорости
+                    gameSpeed = Math.max(50, gameSpeed - 2);
+                    // Добавляем мягкую вибрацию при поедании яблока
+                    tg.HapticFeedback.impactOccurred('soft');
+                } else {
+                    // Удаление хвоста
+                    snake.body.pop();
+                }
+            }
+        }
+
+        // Игровой цикл
+        function gameLoop(currentTime) {
+            if (isGameRunning && !isPaused) {
+                update(currentTime);
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Конец игры
+        function gameOver() {
+            isGameRunning = false;
+            document.getElementById('startButton').disabled = false;
+            document.getElementById('pauseButton').disabled = true;
+            // Добавляем жесткую вибрацию при окончании игры
+            tg.HapticFeedback.impactOccurred('heavy');
+            alert('Игра окончена! Ваш счёт: ' + score);
+        }
+
+        // Обработчики кнопок
+        document.getElementById('startButton').addEventListener('click', function() {
+            if (!isGameRunning) {
+                isGameRunning = true;
+                isPaused = false;
+                this.disabled = true;
+                document.getElementById('pauseButton').disabled = false;
+                initGame();
+                gameLoop(0);
+            }
+        });
+
+        document.getElementById('pauseButton').addEventListener('click', function() {
+            if (isGameRunning) {
+                isPaused = !isPaused;
+                this.textContent = isPaused ? 'Продолжить' : 'Пауза';
+                if (!isPaused) {
+                    lastTime = 0; // Сбрасываем время для плавного возобновления
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+        });
+
+        // Обработка изменения размера окна
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Инициализация
+        resizeCanvas();
+    </script>
 </body>
 </html> 

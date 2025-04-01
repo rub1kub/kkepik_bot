@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
     <title>KKEPIK Игры</title>
     <link rel="stylesheet" href="css/main.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -31,9 +33,26 @@
                 <div class="game-title">Змейка</div>
                 <div class="game-description">Классическая игра на выживание</div>
             </a>
+            
+            <a href="games/2048.html" class="game-card">
+                <div class="game-icon">🎯</div>
+                <div class="game-title">2048</div>
+                <div class="game-description">Увлекательная головоломка с числами</div>
+            </a>
         </div>
     </div>
 
-    <script src="js/main.js"></script>
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.BackButton.hide();
+
+        // Добавляем обработчик клика для всех карточек игр
+        document.querySelectorAll('.game-card').forEach(card => {
+            card.addEventListener('click', () => {
+                tg.HapticFeedback.impactOccurred('soft');
+            });
+        });
+    </script>
 </body>
 </html>
