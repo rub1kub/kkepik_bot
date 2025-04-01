@@ -1,0 +1,235 @@
+.back-button {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    font-size: 24px;
+    color: var(--text-color);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: var(--transition);
+}
+
+.back-button:hover {
+    transform: translateX(-5px);
+}
+
+.game-container {
+    width: 100%;
+    max-width: 400px;
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    box-shadow: var(--box-shadow);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.header {
+    position: relative;
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--tg-theme-hint-color);
+}
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 16px;
+}
+
+.score-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    border-radius: var(--border-radius);
+    background: var(--tg-theme-bg-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: var(--transition);
+}
+
+.score-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.score-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.score-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-area {
+    background: var(--tg-theme-bg-color);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    margin-bottom: 24px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#gameCanvas {
+    width: 100%;
+    height: 300px;
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: var(--border-radius);
+    display: block;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+button {
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mobile-controls {
+    display: none;
+    margin-top: 24px;
+}
+
+.direction-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.horizontal-buttons {
+    display: flex;
+    gap: 24px;
+}
+
+.direction-buttons button {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    font-size: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+}
+
+.direction-buttons button:active {
+    transform: scale(0.95);
+}
+
+.direction-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.final-scores {
+    display: flex;
+    justify-content: space-around;
+    margin: 24px 0;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--tg-theme-bg-color);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 90%;
+    width: 300px;
+}
+
+.modal h2 {
+    margin-bottom: 16px;
+    color: var(--tg-theme-text-color);
+    font-size: 20px;
+}
+
+.final-score, .high-score {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 360px) {
+    .game-container {
+        padding: 16px;
+    }
+
+    #gameCanvas {
+        height: 250px;
+    }
+
+    .score-label {
+        font-size: 12px;
+    }
+
+    .score-value {
+        font-size: 24px;
+    }
+
+    .controls {
+        gap: 8px;
+    }
+
+    .mobile-controls {
+        display: block;
+    }
+
+    .direction-buttons button {
+        width: 48px;
+        height: 48px;
+        font-size: 24px;
+    }
+
+    .horizontal-buttons {
+        gap: 16px;
+    }
+
+    button {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+} 
